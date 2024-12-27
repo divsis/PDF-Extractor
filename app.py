@@ -345,13 +345,109 @@
 
 
 
+# import fitz  # PyMuPDF
+# import re
+# import openpyxl
+# from openpyxl.styles import Font
+# import streamlit as st
+# from io import BytesIO
+
+# def extract_numbers_after_ans(uploaded_file):
+#     ans_numbers = []
+
+#     # Open the uploaded file as a file-like object
+#     doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+
+#     # Iterate through each page
+#     for page_num in range(len(doc)):
+#         page = doc[page_num]
+        
+#         # Extract text from the page
+#         text = page.get_text()
+        
+#         # Split the text into lines
+#         lines = text.splitlines()
+        
+#         # Process each line
+#         for line in lines:
+#             line = line.strip()
+#             if line.startswith("Ans."):
+#                 # Extract the number immediately after "Ans."
+#                 match = re.match(r"Ans\.\s*(\d+)", line)
+#                 if match:
+#                     ans_numbers.append(int(match.group(1)))  # Convert to integer and add to array
+    
+#     return ans_numbers
+
+# def create_excel(data):
+#     # Create a new workbook
+#     workbook = openpyxl.Workbook()
+#     sheet = workbook.active
+#     sheet.title = "Extracted Numbers"
+
+#     # Add headers
+#     sheet["A1"] = "S.No"
+#     sheet["B1"] = "Number"
+
+#     # Bold the headers
+#     bold_font = Font(bold=True)
+#     sheet["A1"].font = bold_font
+#     sheet["B1"].font = bold_font
+
+#     # Add data to Excel and bold the numbers in the "Number" column
+#     for idx, number in enumerate(data, start=1):
+#         # Insert data
+#         sheet.append([idx, number])
+#         # Bold the "Number" column (column B)
+#         sheet[f"B{idx + 1}"].font = bold_font
+
+#     # Save the workbook to a BytesIO object
+#     output = BytesIO()
+#     workbook.save(output)
+#     output.seek(0)  # Reset the stream position
+#     return output
+
+# # Streamlit App
+# st.title("PDF Number Extractor")
+# st.write("Upload a PDF, and this app will extract numbers after 'Ans.' and generate an Excel file for download.")
+
+# # File uploader (users can upload a PDF from any source on their local machine)
+# uploaded_file = st.file_uploader("Upload your PDF file", type=["pdf"])
+
+# if uploaded_file:
+#     # Process the uploaded PDF (using the uploaded file object directly)
+#     with st.spinner("Processing..."):
+#         numbers = extract_numbers_after_ans(uploaded_file)
+
+#     if numbers:
+#         st.success("Numbers extracted successfully!")
+#         st.write("Extracted Numbers:")
+#         st.write(numbers)
+
+#         # Create Excel file
+#         excel_data = create_excel(numbers)
+
+#         # Provide a download button for the Excel file
+#         st.download_button(
+#             label="Download Excel File",
+#             data=excel_data,
+#             file_name="extracted_numbers.xlsx",
+#             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+#         )
+#     else:
+#         st.warning("No numbers found after 'Ans.' in the uploaded PDF.")
+
+
+
 import fitz  # PyMuPDF
 import re
 import openpyxl
-from openpyxl.styles import Font
 import streamlit as st
+from openpyxl.styles import Font
 from io import BytesIO
+import pandas as pd
 
+# Function to extract numbers after "Ans."
 def extract_numbers_after_ans(uploaded_file):
     ans_numbers = []
 
@@ -378,7 +474,6 @@ def extract_numbers_after_ans(uploaded_file):
                     ans_numbers.append(int(match.group(1)))  # Convert to integer and add to array
     
     return ans_numbers
-
 def create_excel(data):
     # Create a new workbook
     workbook = openpyxl.Workbook()
@@ -406,10 +501,9 @@ def create_excel(data):
     workbook.save(output)
     output.seek(0)  # Reset the stream position
     return output
-
 # Streamlit App
-st.title("PDF Number Extractor")
-st.write("Upload a PDF, and this app will extract numbers after 'Ans.' and generate an Excel file for download.")
+st.title("PDF Answer Extractor")
+st.write("Upload a PDF, and this app will extract answers after 'Ans.' and display them in a table.")
 
 # File uploader (users can upload a PDF from any source on their local machine)
 uploaded_file = st.file_uploader("Upload your PDF file", type=["pdf"])
@@ -417,15 +511,24 @@ uploaded_file = st.file_uploader("Upload your PDF file", type=["pdf"])
 if uploaded_file:
     # Process the uploaded PDF (using the uploaded file object directly)
     with st.spinner("Processing..."):
-        numbers = extract_numbers_after_ans(uploaded_file)
+        ans_numbers = extract_numbers_after_ans(uploaded_file)
 
-    if numbers:
-        st.success("Numbers extracted successfully!")
-        st.write("Extracted Numbers:")
-        st.write(numbers)
+    if ans_numbers:
+        st.success("Answers extracted successfully!")
+        excel_data = create_excel(ans_numbers)
+        # Prepare data for display
+        data = {'Question Number': [], 'Answer': []}
+        for idx, number in enumerate(ans_numbers, start=1):
+            data['Question Number'].append(f"Q{idx}")
+            data['Answer'].append(f"**{number}**")  # Bold the answer
 
-        # Create Excel file
-        excel_data = create_excel(numbers)
+        # Convert to DataFrame for better presentation
+        df = pd.DataFrame(data)
+
+        # Display the table
+        st.write("### Extracted Answers:", df)
+         # Create Excel file
+        
 
         # Provide a download button for the Excel file
         st.download_button(
@@ -434,5 +537,15 @@ if uploaded_file:
             file_name="extracted_numbers.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
+        # Alternatively, display as a markdown table (if you prefer)
+        # markdown_table = df.to_markdown(index=False)
+        # st.markdown(markdown_table)
+
     else:
-        st.warning("No numbers found after 'Ans.' in the uploaded PDF.")
+        st.warning("No answers found after 'Ans.' in the uploaded PDF.")
+
+
+
+
+
